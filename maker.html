@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths — Puzzle Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0e0e0e;
+      color: #e8e8e8;
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+      gap: 20px;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+    }
+    .header-tag {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .header h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: #f0f0f0;
+    }
+    .header-sub {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 16px 20px;
+      width: 100%;
+      max-width: 560px;
+    }
+    .panel-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    /* ── Settings row ── */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .field label {
+      font-size: 11px;
+      color: #888;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .field input, .field select {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #e8e8e8;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .field input:focus, .field select:focus { border-color: #555; }
+
+    /* ── Sequence builder ── */
+    .seq-builder {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .seq-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .seq-slot label { font-size: 10px; color: #666; }
+    .seq-slot select {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #e8e8e8;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      padding: 5px 8px;
+      outline: none;
+      cursor: pointer;
+    }
+    .seq-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      margin-top: 18px;
+    }
+    .seq-arrow { color: #555; margin-top: 18px; font-size: 14px; }
+
+    /* ── Instructions ── */
+    .instructions {
+      font-size: 13px;
+      color: #999;
+      line-height: 1.6;
+    }
+    .instructions strong { color: #ccc; }
+
+    /* ── Status bar ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .status-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .status-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #f0f0f0;
+    }
+    .status-label { font-size: 11px; color: #666; }
+    .status-msg {
+      flex: 1;
+      font-size: 13px;
+      color: #aaa;
+      min-width: 160px;
+    }
+    .status-msg.ok { color: #2db8a5; }
+    .status-msg.warn { color: #e8a040; }
+
+    /* ── Grid ── */
+    .grid-wrap {
+      display: flex;
+      justify-content: center;
+    }
+    #maker-grid {
+      display: grid;
+      gap: 3px;
+    }
+    .m-tile {
+      width: 46px;
+      height: 46px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.85);
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      transition: transform .08s, filter .08s, outline .08s;
+      outline: 2px solid transparent;
+      position: relative;
+    }
+    .m-tile:hover { filter: brightness(1.25); transform: scale(1.05); }
+    .m-tile.start  { outline: 3px solid #fff; outline-offset: -3px; }
+    .m-tile.end    { outline: 3px solid #fff; outline-offset: -3px; }
+    .m-tile.on-path { outline: 2px solid rgba(255,255,255,0.6); outline-offset: -2px; }
+    .m-tile.head   { outline: 3px solid #fff; outline-offset: -3px; filter: brightness(1.3); }
+    .m-tile.filled { opacity: 0.7; }
+    .m-tile.unset  { background: #222 !important; outline: 1px solid #333; outline-offset: -1px; }
+    .m-tile.unset:hover { background: #2a2a2a !important; }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #ccc;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 8px 16px;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .btn:hover { background: #303030; border-color: #444; color: #fff; }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-primary {
+      background: #1a6e62;
+      border-color: #2db8a5;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #1f8070; }
+    .btn-danger {
+      background: #3a1a1a;
+      border-color: #a83c28;
+      color: #e06048;
+    }
+    .btn-danger:hover { background: #4a2020; }
+    .btn-save {
+      background: #52389a;
+      border-color: #8060d0;
+      color: #fff;
+    }
+    .btn-save:hover { background: #6244b0; }
+
+    /* ── Output ── */
+    .output-area {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: #aaa;
+      padding: 12px;
+      white-space: pre;
+      overflow-x: auto;
+      max-height: 260px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+    .output-placeholder { color: #444; font-style: italic; }
+
+    /* ── Save status ── */
+    .save-status {
+      font-size: 13px;
+      color: #888;
+      min-height: 20px;
+    }
+    .save-status.ok   { color: #2db8a5; }
+    .save-status.err  { color: #e06048; }
+
+    /* ── Color legend ── */
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #aaa;
+    }
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+
+    /* ── Divider ── */
+    .divider { width: 100%; max-width: 560px; border: none; border-top: 1px solid #222; }
+
+    /* ── Layout helpers ── */
+    .panel-section { margin-top: 14px; }
+    .output-actions { margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-tag">Tool</div>
+    <h1>PATHS</h1>
+    <div class="header-sub">Puzzle Maker — draw the path, fill the grid, save the puzzle</div>
+  </div>
+
+  <!-- Settings -->
+  <div class="panel">
+    <div class="panel-title">Puzzle Settings</div>
+    <div class="settings-grid">
+      <div class="field">
+        <label for="puzzle-id">Puzzle ID</label>
+        <input type="number" id="puzzle-id" min="1" value="11" />
+      </div>
+      <div class="field">
+        <label for="puzzle-date">Release Date</label>
+        <input type="date" id="puzzle-date" />
+      </div>
+      <div class="field">
+        <label for="grid-size">Grid Size</label>
+        <select id="grid-size" title="Grid size">
+          <option value="8">8 × 8</option>
+          <option value="10" selected>10 × 10</option>
+          <option value="12">12 × 12</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">Colour Sequence (repeating)</div>
+      <div class="seq-builder" id="seq-builder"></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">Colours</div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <!-- Instructions -->
+  <div class="panel">
+    <div class="panel-title">How to draw the path</div>
+    <div class="instructions">
+      <strong>Click</strong> adjacent tiles to extend the path from <strong>S (top-left)</strong> to <strong>E (bottom-right)</strong>.<br/>
+      <strong>Click a visited tile</strong> to backtrack to that point.<br/>
+      Path tiles are coloured automatically by the sequence. Non-path tiles show as dark until you <strong>Auto-fill</strong>.
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="panel">
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-val" id="step-count">0</span>
+        <span class="status-label">steps</span>
+      </div>
+      <div class="status-item">
+        <span class="status-val" id="path-pct">0%</span>
+        <span class="status-label">coverage</span>
+      </div>
+      <div class="status-msg" id="status-msg">Click tiles to draw your path starting from S</div>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid-wrap">
+    <div id="maker-grid"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="panel">
+    <div class="btn-row">
+      <button type="button" class="btn" onclick="undoStep()">↩ Undo</button>
+      <button type="button" class="btn btn-danger" onclick="clearPath()">✕ Clear Path</button>
+      <button type="button" class="btn btn-primary" id="autofill-btn" onclick="autoFill()" disabled>⚡ Auto-fill Grid</button>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="panel">
+    <div class="panel-title">Generated Puzzle</div>
+    <div class="output-area" id="output"><span class="output-placeholder">Complete the path and click Auto-fill to generate puzzle data…</span></div>
+    <div class="btn-row output-actions">
+      <button type="button" class="btn" id="copy-btn" onclick="copyOutput()" disabled>⎘ Copy</button>
+      <button type="button" class="btn btn-save" id="save-btn" onclick="saveToPuzzles()" disabled>💾 Save to puzzles.js</button>
+    </div>
+    <div class="save-status" id="save-status"></div>
+  </div>
+
+<script>
+// ── Colour palette (mirrors puzzles.js) ──────────────────────────────────────
+const COLORS = [
+  { name: 'amber',  bg: '#b87020', light: '#e8a040' },
+  { name: 'teal',   bg: '#1a6e62', light: '#2db8a5' },
+  { name: 'coral',  bg: '#a83c28', light: '#e06048' },
+  { name: 'violet', bg: '#52389a', light: '#8060d0' },
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+let SIZE      = 10;
+let SEQ       = [0, 1, 2, 3];
+let path      = [[0, 0]];
+let filledGrid = null; // null = not yet auto-filled
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Default date = tomorrow
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  document.getElementById('puzzle-date').value = fmtDate(tomorrow);
+
+  buildLegend();
+  buildSeqBuilder();
+  buildGrid();
+  updateStatus();
+});
+
+function fmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ── Legend ───────────────────────────────────────────────────────────────────
+function buildLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = COLORS.map((c, i) =>
+    `<div class="legend-item">
+      <div class="legend-dot" style="background:${c.bg};box-shadow:0 0 0 2px ${c.light}55"></div>
+      <span>${i} — ${c.name}</span>
+    </div>`
+  ).join('');
+}
+
+// ── Sequence builder ─────────────────────────────────────────────────────────
+function buildSeqBuilder() {
+  const el = document.getElementById('seq-builder');
+  el.innerHTML = '';
+
+  SEQ.forEach((ci, i) => {
+    if (i > 0) {
+      const arr = document.createElement('span');
+      arr.className = 'seq-arrow';
+      arr.textContent = '→';
+      el.appendChild(arr);
+    }
+
+    const slot = document.createElement('div');
+    slot.className = 'seq-slot';
+
+    const lbl = document.createElement('label');
+    lbl.textContent = `#${i+1}`;
+
+    const sel = document.createElement('select');
+    COLORS.forEach((c, j) => {
+      const opt = document.createElement('option');
+      opt.value = j;
+      opt.textContent = c.name;
+      if (j === ci) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      SEQ[i] = parseInt(sel.value);
+      updateSeqDots();
+      filledGrid = null;
+      renderGrid();
+      updateOutput();
+    });
+
+    slot.appendChild(lbl);
+    slot.appendChild(sel);
+    el.appendChild(slot);
+
+    const dot = document.createElement('div');
+    dot.className = 'seq-dot';
+    dot.id = `seq-dot-${i}`;
+    dot.style.background = COLORS[ci].bg;
+    dot.style.borderColor = COLORS[ci].light;
+    slot.appendChild(dot);
+  });
+}
+
+function updateSeqDots() {
+  SEQ.forEach((ci, i) => {
+    const dot = document.getElementById(`seq-dot-${i}`);
+    if (dot) {
+      dot.style.background   = COLORS[ci].bg;
+      dot.style.borderColor  = COLORS[ci].light;
+    }
+  });
+}
+
+// ── Grid size change ─────────────────────────────────────────────────────────
+document.getElementById('grid-size').addEventListener('change', function() {
+  SIZE = parseInt(this.value);
+  path = [[0, 0]];
+  filledGrid = null;
+  buildGrid();
+  updateOutput();
+  updateStatus();
+});
+
+// ── Build grid ───────────────────────────────────────────────────────────────
+function buildGrid() {
+  const el = document.getElementById('maker-grid');
+  el.style.gridTemplateColumns = `repeat(${SIZE}, 46px)`;
+  el.style.gridTemplateRows    = `repeat(${SIZE}, 46px)`;
+  el.style.gap = '3px';
+  el.innerHTML = '';
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const tile = document.createElement('div');
+      tile.className = 'm-tile unset';
+      tile.id = `m_${r}_${c}`;
+      tile.addEventListener('click', () => clickTile(r, c));
+      el.appendChild(tile);
+    }
+  }
+
+  renderGrid();
+}
+
+// ── Render grid ───────────────────────────────────────────────────────────────
+function renderGrid() {
+  const er = SIZE - 1, ec = SIZE - 1;
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const tile = document.getElementById(`m_${r}_${c}`);
+      const pathIdx = path.findIndex(([pr,pc]) => pr===r && pc===c);
+      const onPath  = pathIdx !== -1;
+      const isStart = r===0 && c===0;
+      const isEnd   = r===er && c===ec;
+      const isHead  = onPath && pathIdx === path.length - 1;
+
+      tile.className = 'm-tile';
+
+      if (onPath) {
+        const ci = SEQ[pathIdx % SEQ.length];
+        tile.style.background = COLORS[ci].bg;
+        tile.style.boxShadow  = `inset 0 0 0 1px ${COLORS[ci].light}44`;
+
+        if (isStart)     tile.classList.add('start');
+        else if (isEnd)  tile.classList.add('end');
+        else if (isHead) tile.classList.add('head');
+        else             tile.classList.add('on-path');
+
+        tile.textContent = isStart ? 'S' : isEnd ? 'E' : String(pathIdx);
+      } else if (filledGrid) {
+        const ci = filledGrid[r][c];
+        tile.style.background = COLORS[ci].bg;
+        tile.style.boxShadow  = '';
+        tile.classList.add('filled');
+        tile.textContent = isEnd ? 'E' : '';
+      } else {
+        tile.classList.add('unset');
+        tile.style.background = '';
+        tile.style.boxShadow  = '';
+        tile.textContent = isStart ? 'S' : isEnd ? 'E' : '';
+
+        if (isStart || isEnd) {
+          const ci = isStart ? SEQ[0] : SEQ[(path.length - 1) % SEQ.length];
+          // just show the label on dark bg for unvisited end
+        }
+      }
+    }
+  }
+
+  // Always show S at (0,0) when not on path yet (shouldn't happen since path always starts there)
+  updateStatus();
+}
+
+// ── Click tile ────────────────────────────────────────────────────────────────
+function clickTile(r, c) {
+  const head = path[path.length - 1];
+
+  // Clicking the current head = undo
+  if (head[0] === r && head[1] === c) {
+    if (path.length > 1) undoStep();
+    return;
+  }
+
+  // Clicking an existing path tile = backtrack to it
+  const existingIdx = path.findIndex(([pr,pc]) => pr===r && pc===c);
+  if (existingIdx !== -1) {
+    path = path.slice(0, existingIdx + 1);
+    filledGrid = null;
+    renderGrid();
+    updateOutput();
+    return;
+  }
+
+  // Must be adjacent
+  if (Math.abs(r - head[0]) + Math.abs(c - head[1]) !== 1) {
+    setStatus('Tiles must be adjacent to the current head', 'warn');
+    return;
+  }
+
+  path.push([r, c]);
+  filledGrid = null;
+
+  const er = SIZE - 1, ec = SIZE - 1;
+  if (r === er && c === ec) {
+    document.getElementById('autofill-btn').disabled = false;
+    setStatus(`Path complete! ${path.length - 1} steps. Now click Auto-fill.`, 'ok');
+  } else {
+    const nextColor = COLORS[SEQ[path.length % SEQ.length]].name;
+    setStatus(`Step ${path.length - 1} — next colour: ${nextColor}`);
+  }
+
+  renderGrid();
+  updateOutput();
+}
+
+// ── Undo / clear ─────────────────────────────────────────────────────────────
+function undoStep() {
+  if (path.length <= 1) return;
+  path.pop();
+  filledGrid = null;
+  document.getElementById('autofill-btn').disabled = !pathComplete();
+  renderGrid();
+  updateOutput();
+}
+
+function clearPath() {
+  path = [[0, 0]];
+  filledGrid = null;
+  document.getElementById('autofill-btn').disabled = true;
+  document.getElementById('copy-btn').disabled = true;
+  document.getElementById('save-btn').disabled = true;
+  document.getElementById('output').innerHTML = '<span class="output-placeholder">Complete the path and click Auto-fill to generate puzzle data…</span>';
+  document.getElementById('save-status').textContent = '';
+  renderGrid();
+  updateStatus();
+}
+
+function pathComplete() {
+  const last = path[path.length - 1];
+  return last[0] === SIZE - 1 && last[1] === SIZE - 1;
+}
+
+// ── Status ────────────────────────────────────────────────────────────────────
+function setStatus(msg, type = '') {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (type ? ' ' + type : '');
+}
+
+function updateStatus() {
+  document.getElementById('step-count').textContent = path.length - 1;
+  const pct = Math.round((path.length / (SIZE * SIZE)) * 100);
+  document.getElementById('path-pct').textContent = pct + '%';
+}
+
+// ── Auto-fill ─────────────────────────────────────────────────────────────────
+function autoFill() {
+  if (!pathComplete()) {
+    setStatus('Path must reach the bottom-right corner first', 'warn');
+    return;
+  }
+
+  // Build grid: path cells get sequence colour, rest are random
+  filledGrid = Array.from({ length: SIZE }, () => Array(SIZE).fill(-1));
+
+  path.forEach(([r, c], i) => {
+    filledGrid[r][c] = SEQ[i % SEQ.length];
+  });
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (filledGrid[r][c] === -1) {
+        filledGrid[r][c] = Math.floor(Math.random() * 4);
+      }
+    }
+  }
+
+  renderGrid();
+  updateOutput();
+  setStatus('Grid filled! Review and save the puzzle.', 'ok');
+}
+
+// ── Generate output ───────────────────────────────────────────────────────────
+function generatePuzzleObject() {
+  if (!filledGrid || !pathComplete()) return null;
+
+  const id   = parseInt(document.getElementById('puzzle-id').value) || 1;
+  const date = document.getElementById('puzzle-date').value;
+
+  return {
+    id,
+    date,
+    size: SIZE,
+    sequence: SEQ,
+    solution: path.map(p => p.slice()),
+    grid: filledGrid.map(row => row.slice()),
+  };
+}
+
+function updateOutput() {
+  const puzzle = generatePuzzleObject();
+  const el = document.getElementById('output');
+
+  if (!puzzle) {
+    el.innerHTML = '<span class="output-placeholder">Complete the path and click Auto-fill to generate puzzle data…</span>';
+    document.getElementById('copy-btn').disabled = true;
+    document.getElementById('save-btn').disabled = true;
+    return;
+  }
+
+  el.textContent = formatPuzzleJS(puzzle);
+  document.getElementById('copy-btn').disabled = false;
+  document.getElementById('save-btn').disabled = false;
+}
+
+function formatPuzzleJS(p) {
+  const solLines = p.solution.map(([r,c]) => `[${r},${c}]`).join(',');
+  const gridLines = p.grid.map(row => '      [' + row.join(', ') + ']').join(',\n');
+  const seqStr = '[' + p.sequence.join(', ') + ']';
+
+  // Build colour annotations for path
+  const stepComments = p.solution.map(([r,c], i) => {
+    const ci = p.sequence[i % p.sequence.length];
+    return COLORS[ci].name.slice(0,1);
+  }).join('  ');
+
+  return `  {
+    id: ${p.id},
+    date: '${p.date}',
+    size: ${p.size},
+    sequence: ${seqStr},
+    solution: [
+      ${solLines}
+    ],
+    grid: [
+${gridLines},
+    ],
+  },`;
+}
+
+// ── Copy ──────────────────────────────────────────────────────────────────────
+function copyOutput() {
+  const text = document.getElementById('output').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    setSaveStatus('Copied to clipboard!', 'ok');
+  }).catch(() => {
+    setSaveStatus('Copy failed — select and copy manually', 'err');
+  });
+}
+
+// ── Save to puzzles.js ────────────────────────────────────────────────────────
+async function saveToPuzzles() {
+  const puzzle = generatePuzzleObject();
+  if (!puzzle) return;
+
+  setSaveStatus('');
+
+  // When served by the Node server, use the API endpoint
+  if (window.location.protocol !== 'file:') {
+    await saveViaAPI(puzzle);
+    return;
+  }
+
+  // Fallback: File System Access API (direct file open/write in browser)
+  await saveViaFileAPI(puzzle);
+}
+
+async function saveViaAPI(puzzle) {
+  const body = {
+    puzzleJS: formatPuzzleJS(puzzle),
+    date: puzzle.date,
+    id: puzzle.id,
+  };
+
+  let res, data;
+  try {
+    res  = await fetch('/api/save-puzzle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    data = await res.json();
+  } catch (e) {
+    setSaveStatus('Network error: ' + e.message, 'err');
+    return;
+  }
+
+  if (!res.ok) {
+    setSaveStatus(data.error || 'Save failed', 'err');
+    return;
+  }
+
+  setSaveStatus(`Puzzle #${puzzle.id} saved to puzzles.js — commit & push to deploy!`, 'ok');
+}
+
+async function saveViaFileAPI(puzzle) {
+  if (!window.showOpenFilePicker) {
+    setSaveStatus('Open via the Node server (npm start) to save directly, or use Copy', 'err');
+    return;
+  }
+
+  let fileHandle;
+  try {
+    [fileHandle] = await window.showOpenFilePicker({
+      types: [{ description: 'JavaScript', accept: { 'text/javascript': ['.js'] } }],
+      multiple: false,
+    });
+  } catch (e) {
+    if (e.name !== 'AbortError') setSaveStatus('Could not open file', 'err');
+    return;
+  }
+
+  let existing;
+  try {
+    const file = await fileHandle.getFile();
+    existing = await file.text();
+  } catch (e) {
+    setSaveStatus('Could not read file: ' + e.message, 'err');
+    return;
+  }
+
+  if (!existing.includes('const PUZZLES')) {
+    setSaveStatus("That doesn't look like puzzles.js", 'err');
+    return;
+  }
+
+  if (existing.includes(`date: '${puzzle.date}'`)) {
+    setSaveStatus(`A puzzle with date ${puzzle.date} already exists`, 'err');
+    return;
+  }
+
+  const insertIdx = existing.lastIndexOf('];');
+  if (insertIdx === -1) {
+    setSaveStatus('Could not find insertion point in puzzles.js', 'err');
+    return;
+  }
+
+  const newContent = existing.slice(0, insertIdx) + '\n' + formatPuzzleJS(puzzle) + '\n' + existing.slice(insertIdx);
+
+  try {
+    const writable = await fileHandle.createWritable();
+    await writable.write(newContent);
+    await writable.close();
+    setSaveStatus(`Puzzle #${puzzle.id} saved to ${fileHandle.name}!`, 'ok');
+  } catch (e) {
+    setSaveStatus('Write failed: ' + e.message, 'err');
+  }
+}
+
+function setSaveStatus(msg, type = '') {
+  const el = document.getElementById('save-status');
+  el.textContent = msg;
+  el.className = 'save-status' + (type ? ' ' + type : '');
+}
+</script>
+</body>
+</html>

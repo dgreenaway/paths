@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths — Daily Puzzle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo" id="puzzle-num">Daily Puzzle #001</div>
+    <div class="title">PATHS</div>
+    <div class="subtitle">Trace the path in the correct colour order</div>
+  </div>
+
+  <div class="rule-strip" id="rule-strip"></div>
+
+  <div class="info-bar">
+    <div class="info-item"><span class="info-val" id="steps-val">0</span><span>steps</span></div>
+    <div class="info-item"><span class="info-val" id="errors-val">0</span><span>errors</span></div>
+    <div class="info-item"><span class="info-val" id="timer-val">0:00</span><span>time</span></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="msg" id="msg">Start at S — follow the colour order to reach E</div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="undoStep()">↩ Undo</button>
+    <button class="btn" onclick="resetPuzzle()">↺ Reset</button>
+    <button class="btn btn-primary" onclick="showHint()">Hint</button>
+  </div>
+
+  <div class="win-footer" id="win-footer"></div>
+
+  <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+    <div class="win-banner" id="win-banner">
+      <button type="button" class="win-close" onclick="closeModal()" aria-label="Close">✕</button>
+      <div class="win-header">
+        <div class="win-label">PATHS</div>
+        <div class="win-title">Path Complete</div>
+        <div class="win-puzzle-num" id="win-puzzle-num"></div>
+      </div>
+      <div class="win-stats" id="win-stat"></div>
+      <div class="win-grid" id="win-grid"></div>
+      <div class="win-tomorrow" id="win-tomorrow"></div>
+      <div class="share-str" id="share-str" aria-hidden="true"></div>
+      <button type="button" class="btn btn-primary win-copy-btn" onclick="copyShare()">Copy Result</button>
+    </div>
+  </div>
+
+  <script src="js/puzzles.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
