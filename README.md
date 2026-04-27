@@ -1,90 +1,104 @@
-# Pathfinder — Daily Puzzle Game
+# Paths
 
-A daily visual puzzle game. Players trace a path from S to E across a colour grid,
-following a repeating colour sequence. One puzzle per day, shared globally.
+A daily colour puzzle game I'm building while learning web development. The idea is simple: trace a path from S to E across a colour grid, following a repeating colour sequence. One puzzle a day, same puzzle for everyone.
 
-## Project Structure
+Still a work in progress but the core game is working and I'm adding to it as I go.
+
+---
+
+## What it is
+
+You get a grid of coloured tiles. Starting from the top-left corner, you click your way to the bottom-right, but each tile you step on has to match the next colour in a set sequence (amber, teal, coral, violet, repeat). Click a wrong colour and it counts as an error. There's a hint button if you get stuck.
+
+When you finish, you get a little results screen with your step count, errors and time. You can also copy a shareable emoji version of your path.
+
+---
+
+## Running it locally
+
+You'll need Node.js installed. Then:
+
+```bash
+npm install
+npm start
+```
+
+Open `http://localhost:3000` in your browser.
+
+There's also a puzzle maker tool at `http://localhost:3000/maker.html` which lets you draw a custom path and save it as an upcoming puzzle without touching the code directly.
+
+---
+
+## Project structure
 
 ```
-pathfinder/
-├── index.html          # Main game page
+paths/
+├── index.html          # the game
+├── maker.html          # puzzle builder tool
+├── server.js           # express server
 ├── css/
-│   └── style.css       # All styles
+│   └── style.css
 ├── js/
-│   ├── puzzles.js      # Puzzle definitions (add new puzzles here)
-│   └── game.js         # Game logic
-└── README.md
+│   ├── puzzles.js      # all puzzle definitions live here
+│   └── game.js         # game logic
+└── package.json
 ```
 
-## Running Locally
+---
 
-Just open `index.html` in a browser — no build step or server needed.
+## Adding puzzles
 
-In VS Code, install the **Live Server** extension (ritwickdey.liveserver),
-right-click `index.html` and choose "Open with Live Server".
+The easiest way is to use the maker tool at `/maker.html`. Draw your path on the grid, hit auto-fill, and click save. It writes directly to `puzzles.js` for you.
 
-## Adding New Puzzles
-
-Open `js/puzzles.js` and add a new object to the `PUZZLES` array.
-
-**Step 1 — Design your solution path**
-Draw a path from start tile to end tile on paper (or mentally).
-Example for a 5×5 grid: `(0,0)→(1,0)→(2,0)→(2,1)→(2,2)→(3,2)→(4,2)→(4,3)→(4,4)`
-
-**Step 2 — Assign colours to solution tiles**
-The colour at each step must match `sequence[stepIndex % sequence.length]`.
-Default sequence is `[0, 1, 2, 3]` (amber → teal → coral → violet, repeating).
-
-| Step | sequence index | colour |
-|------|---------------|--------|
-| 0 (start) | 0 | amber  |
-| 1         | 1 | teal   |
-| 2         | 2 | coral  |
-| 3         | 3 | violet |
-| 4         | 0 | amber  |
-| …         | … | …      |
-
-**Step 3 — Fill the rest of the grid**
-Non-solution tiles can be any colour. Avoid placing the "next expected" colour
-on tiles adjacent to the solution path (it misleads players).
-
-**Step 4 — Add to PUZZLES array**
+If you want to add one manually, each puzzle in `puzzles.js` looks like this:
 
 ```js
 {
-  id: 4,
-  size: 5,
+  id: 11,
+  date: '2026-04-12',
+  size: 10,
   sequence: [0, 1, 2, 3],
   solution: [
-    [0,0],[1,0],[2,0],[2,1],[2,2],[3,2],[4,2],[4,3],[4,4]
+    [0,0],[0,1],[0,2], // ... rest of path to [9,9]
   ],
   grid: [
-    [0, 3, 1, 2, 3],
-    [1, 2, 3, 0, 2],
-    [2, 1, 0, 1, 3],   // solution tiles at cols 0,1,2 in this row
-    [0, 3, 1, 2, 0],
-    [1, 2, 0, 3, 0],   // solution tiles at cols 2,3,4 in this row
+    // 10x10 array of colour indices (0-3)
   ],
 }
 ```
 
-## Colour Reference
+The `solution` is the correct path from start to end. Path tiles get coloured automaticly by the sequence. Everything else is filled randomly by the maker.
 
-| Index | Name   | Background |
-|-------|--------|------------|
-| 0     | amber  | #b87020    |
-| 1     | teal   | #1a6e62    |
-| 2     | coral  | #a83c28    |
-| 3     | violet | #52389a    |
+---
 
-## Daily Puzzle Rotation
+## Colours
 
-Puzzles rotate automatically by day of year:
-`puzzleIndex = dayOfYear % PUZZLES.length`
+| Index | Name   | Hex     |
+|-------|--------|---------|
+| 0     | amber  | #b87020 |
+| 1     | teal   | #1a6e62 |
+| 2     | coral  | #a83c28 |
+| 3     | violet | #52389a |
 
-So with 3 puzzles, day 1 = puzzle 1, day 2 = puzzle 2, day 3 = puzzle 3, day 4 = puzzle 1 again.
+---
 
 ## Deploying
 
-Any static host works — Netlify, Vercel, GitHub Pages, Cloudflare Pages.
-Just upload the folder contents. No server-side code required.
+This is set up to deploy on Railway. Push to GitHub, connect the repo in Railway, and it picks up the `npm start` script automatically.
+
+One thing to note: saving puzzles via the maker tool writes to the local filesystem. On Railway that won't persist between deploys, so the workflow is: use the maker locally, commit the updated `puzzles.js`, then push.
+
+---
+
+## What's next
+
+Things I'm still working on or thinking about:
+
+- streak tracking / previous results
+- difficulty settings (bigger grids, longer sequences)
+- maybe an archive of past puzzles
+- mobile feels ok but could be better
+
+---
+
+Built while learning. Probably some rough edges.
