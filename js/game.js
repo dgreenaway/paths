@@ -42,6 +42,64 @@ let startTime   = null;
 let timerInterval = null;
 let hintTimeout = null;
 
+// ── Storage ──────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'paths_data';
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { results: {} }; }
+  catch { return { results: {} }; }
+}
+
+function saveResult(timeStr) {
+  if (!PUZZLE) return;
+  const data = loadData();
+  data.results[PUZZLE.date] = {
+    id: PUZZLE.id, steps: path.length - 1, errors, time: timeStr,
+    path: path.map(([r, c]) => [r, c]),
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function shiftDate(str, days) {
+  const d = new Date(str + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function getStreaks() {
+  const data  = loadData();
+  const today = todayString();
+
+  let current = 0;
+  let cursor  = data.results[today] ? today : shiftDate(today, -1);
+  while (data.results[cursor]) { current++; cursor = shiftDate(cursor, -1); }
+
+  const dates = Object.keys(data.results).sort();
+  let best = 0, run = 0;
+  for (let i = 0; i < dates.length; i++) {
+    if (i === 0) { run = 1; } else {
+      const gap = (new Date(dates[i] + 'T00:00:00') - new Date(dates[i-1] + 'T00:00:00')) / 86400000;
+      run = gap === 1 ? run + 1 : 1;
+    }
+    if (run > best) best = run;
+  }
+
+  return { current, best };
+}
+
+function checkAlreadyPlayed() {
+  if (!PUZZLE) return false;
+  const result = loadData().results[PUZZLE.date];
+  if (!result) return false;
+  path   = result.path;
+  errors = result.errors;
+  solved = true;
+  document.getElementById('errors-val').textContent = errors;
+  document.getElementById('timer-val').textContent  = result.time;
+  document.getElementById('steps-val').textContent  = result.steps;
+  return true;
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   if (DEV_MODE) injectDevBar();
@@ -54,6 +112,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('puzzle-num').textContent = `Daily Puzzle #${String(PUZZLE.id).padStart(3, '0')}`;
   buildRuleStrip();
   buildGrid();
+
+  if (checkAlreadyPlayed()) {
+    renderPath();
+    setMsg('Path complete! Well done.', 'success');
+    document.querySelector('.btn-row').style.display = 'none';
+    buildTomorrowMsg();
+    document.getElementById('win-footer').classList.add('show');
+  }
 });
 
 // ── Dev bar ──────────────────────────────────────────────────────────────────
@@ -300,6 +366,8 @@ function winGame() {
   const s       = Math.floor((Date.now() - startTime) / 1000);
   const timeStr = Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60);
 
+  saveResult(timeStr);
+
   setMsg('Path complete! Well done.', 'success');
 
   document.getElementById('win-puzzle-num').textContent =
@@ -315,6 +383,17 @@ function winGame() {
     <div class="win-stat-item">
       <span class="win-stat-val">${val}</span>
       <span class="win-stat-label">${label}</span>
+    </div>`).join('');
+
+  // Streak row
+  const { current, best } = getStreaks();
+  document.getElementById('win-streak').innerHTML = [
+    [current, 'Streak'],
+    [best,    'Best'],
+  ].map(([val, label]) => `
+    <div class="win-streak-item">
+      <span class="win-streak-val">${val}</span>
+      <span class="win-streak-label">${label}</span>
     </div>`).join('');
 
   buildWinGrid();
@@ -358,7 +437,7 @@ function buildTomorrowMsg() {
 }
 
 function buildShareString(timeStr) {
-  let str = `PATHFINDER #${String(PUZZLE.id).padStart(3,'0')}\n`;
+  let str = `PATHS #${String(PUZZLE.id).padStart(3,'0')}\n`;
   str    += `${path.length - 1} steps · ${errors} errors · ${timeStr}\n`;
 
   for (let r = 0; r < SIZE; r++) {

@@ -370,6 +370,38 @@ body:has(#dev-bar) {
   letter-spacing: 1px;
 }
 
+/* ── Win streak ── */
+.win-streak {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  padding-top: 16px;
+  border-top: 1px solid #222228;
+  width: 100%;
+}
+
+.win-streak-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.win-streak-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #9070d0;
+  line-height: 1;
+}
+
+.win-streak-label {
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 /* ── Win grid ── */
 .win-grid {
   display: grid;
